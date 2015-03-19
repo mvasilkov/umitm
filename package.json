@@ -1,0 +1,22 @@
+{
+  "name": "umitm",
+  "version": "0.0.1",
+  "description": "UMITM: the Upset-Man-In-The-Middle weaponized localhost creation kit",
+  "main": "umitm.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mvasilkov/umitm.git"
+  },
+  "keywords": [
+    "MITM"
+  ],
+  "author": "Mark Vasilkov (https://github.com/mvasilkov)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mvasilkov/umitm/issues"
+  },
+  "homepage": "https://github.com/mvasilkov/umitm",
+  "dependencies": {
+    "native-dns": "^0.7.0"
+  }
+}
