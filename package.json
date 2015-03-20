@@ -18,6 +18,8 @@
   "homepage": "https://github.com/mvasilkov/umitm",
   "dependencies": {
     "async": "^0.9.0",
+    "chalk": "^1.0.0",
+    "lodash": "^3.5.0",
     "native-dns": "^0.7.0"
   }
 }

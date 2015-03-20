@@ -1,36 +1,80 @@
+'use strict'
 var async = require('async')
 var dns = require('dns')
 var dns2 = require('native-dns')
+var _ = require('lodash')
+var chalk = require('chalk')
+var util = require('util')
+
+var log = require('./log')('ns')
+var settings = require('../ns_settings.json')
+
+/* https://msdn.microsoft.com/en-us/library/windows/desktop/cc982162(v=vs.85).aspx */
+var DNS_TYPE = {
+    A:      0x0001,
+    NS:     0x0002,
+    CNAME:  0x0005,
+    SOA:    0x0006,
+    PTR:    0x000c,
+    MX:     0x000f,
+    TEXT:   0x0010,
+    AAAA:   0x001c,
+    SRV:    0x0021,
+    ANY:    0x00ff
+}
+
+var _typeStr = _.transform(DNS_TYPE, (res, val, key) => { res[val] = key })
+
+function typeStr(x) {
+    return _typeStr[x] || util.format('BAD (%d)', x)
+}
+
+var _push = Array.prototype.push
 
 function resolve(x, done) {
-    done(null, {name: x.name, address: '127.0.0.1', ttl: 666})
+    var known
+    if (known = settings.known[x.name]) {
+        var result = []
+        if (x.type === DNS_TYPE.A || x.type === DNS_TYPE.ANY) {
+            _push.apply(result, _.toArray(known.A).map(
+                a => dns2.A({name: x.name, address: a, ttl: 666})))
+        }
+        return void done(null, result.length? result: null)
+    }
+    done(null, null)
 }
 
 function onRequest(req, res) {
-    console.log('ns request: ' + req.question.map(x => x.name))
+    log('request: ' + req.question.map(_logRequest))
 
     async.map(req.question, resolve, function (err, result) {
-        res.answer = result.map(dns2.A)
+        res.answer = _(result).filter().flatten().value()
         res.send()
     })
 }
 
+function _logRequest(x) {
+    var known = x.name in settings.known
+    return ((known? chalk.magenta: chalk.blue)
+            (x.name + (known? ' [known] ': ' ') + typeStr(x.type)))
+}
+
 function onError(err) {
-    console.log('ns server error')
-    console.error('^ ' + err.stack)
+    log.error('server error')
+    console.error(err.stack)
 }
 
 function socketListening(host, port) {
-    console.log('ns up on ' + host + ':' + port)
+    log('up on ' + host + ':' + port)
 }
 
 function socketClose() {
-    console.log('ns down')
+    log('down')
 }
 
 function socketError(err) {
-    console.log('ns socket error')
-    console.error('^ ' + err)
+    log.error('socket error')
+    console.error(err)
 }
 
 function run() {

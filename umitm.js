@@ -1,7 +1,9 @@
+'use strict'
 var ns = require('./b/ns')
+var log = require('./b/log')('umitm')
 
 function run() {
-    console.log('umitm running')
+    log('running')
 
     ns.run()
 }
