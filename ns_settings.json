@@ -2,6 +2,9 @@
     "known": {
         "a.b": {
             "A": ["192.168.0.1", "192.168.0.2"]
-        }
+        },
+        "googleads.g.doubleclick.net": {},
+        "pubads.g.doubleclick.net": {},
+        "pagead2.googlesyndication.com": {}
     }
 }

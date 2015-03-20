@@ -9,6 +9,8 @@ var util = require('util')
 var log = require('./log')('ns')
 var settings = require('../ns_settings.json')
 
+dns.setServers(['8.8.8.8', '8.8.4.4'])
+
 /* https://msdn.microsoft.com/en-us/library/windows/desktop/cc982162(v=vs.85).aspx */
 var DNS_TYPE = {
     A:      0x0001,
@@ -29,6 +31,9 @@ function typeStr(x) {
     return _typeStr[x] || util.format('BAD (%d)', x)
 }
 
+var TTL_OFFLINE = 600
+var TTL_ONLINE = TTL_OFFLINE * 0.1
+
 var _push = Array.prototype.push
 
 function resolve(x, done) {
@@ -37,11 +42,32 @@ function resolve(x, done) {
         var result = []
         if (x.type === DNS_TYPE.A || x.type === DNS_TYPE.ANY) {
             _push.apply(result, _.toArray(known.A).map(
-                a => dns2.A({name: x.name, address: a, ttl: 666})))
+                a => dns2.A({name: x.name, address: a, ttl: TTL_OFFLINE})))
         }
         return void done(null, result.length? result: null)
     }
-    done(null, null)
+
+    if (x.type === DNS_TYPE.A || x.type === DNS_TYPE.ANY) {
+        dns.resolve(x.name, 'A', function (err, res) {
+            if (err) {
+                dnsError(err)
+                return void done(null, null)
+            }
+            done(null, res.map(
+                a => dns2.A({name: x.name, address: a, ttl: TTL_ONLINE})))
+        })
+    }
+    else if (x.type === DNS_TYPE.MX) {
+        dns.resolve(x.name, 'MX', function (err, res) {
+            if (err) {
+                dnsError(err)
+                return void done(null, null)
+            }
+            done(null, res.map(
+                a => dns2.MX(_.extend({name: x.name, ttl: TTL_ONLINE}, a))))
+        })
+    }
+    else done(null, null)
 }
 
 function onRequest(req, res) {
@@ -61,7 +87,7 @@ function _logRequest(x) {
 
 function onError(err) {
     log.error('server error')
-    console.error(err.stack)
+    console.error('^ ' + err.stack)
 }
 
 function socketListening(host, port) {
@@ -74,12 +100,17 @@ function socketClose() {
 
 function socketError(err) {
     log.error('socket error')
-    console.error(err)
+    console.error('^ ' + err)
+}
+
+function dnsError(err) {
+    log.error('dns error')
+    console.error('^ ' + err)
 }
 
 function run() {
     var host = '0.0.0.0'
-    var port = 12353
+    var port = process.env.PORT || 12353
     var server = dns2.createServer()
 
     server.on('request', onRequest)
