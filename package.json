@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/mvasilkov/umitm",
   "dependencies": {
+    "async": "^0.9.0",
     "native-dns": "^0.7.0"
   }
 }
